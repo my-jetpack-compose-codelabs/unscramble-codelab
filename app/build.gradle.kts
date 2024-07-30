@@ -75,6 +75,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
 
+    // 导入 compose 的 viewmodel 的依赖 
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     debugImplementation("androidx.compose.ui:ui-tooling")
