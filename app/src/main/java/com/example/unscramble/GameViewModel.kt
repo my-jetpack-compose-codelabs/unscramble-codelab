@@ -1,5 +1,9 @@
 package com.example.unscramble
 
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.unscramble.data.allWords
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +33,14 @@ class GameViewModel: ViewModel() {
     // 创建一个 可变set 来存储已经出题过的 words
     // Tips: set 是乱序且没有重复元素的类似数组的类型,当不需要重复元素和对数据有顺序需求的时候可以用 set
     private var usedWords: MutableSet<String> = mutableSetOf()
+
+    // 创建一个state 的字符串,让textField 可以参照显示
+    // 这里也没使用了 remember,是因为viewmodel 和@Composable 和 activity,fragment 不同,在重组或者改变屏幕朝向的时候,不会销毁重建,所以不需要使用 remember 就可以维持
+    // 另外这里,没有将 userGuess 这个属性定义在 data class 中,因为userGuess是一个频繁修正且只和view 组件的关联比较单纯,也无关异步等 flow 才可以实现的需求,所以在简洁性,更新时开销和效率的考虑,直接使用mutableStateOf由 viewmodel 直接持有是可以的,这不是一个非黑即白的规则,要根据需求灵活的考虑
+    var userGuess by mutableStateOf("")
+        // 这里把userGuess的 setter 方法给私有了,所以实现了在外部可以参照但是没办法直接修改,而是必须要依赖于updateUserGuess方法去修改,保证 udf 数据单向流的规则
+        private set
+
     //endregion
 
     //region init
@@ -78,6 +90,14 @@ class GameViewModel: ViewModel() {
         )
     }
     //endregion
+
+    //region  4.event method
+    fun updateUserGuess(guessedWord: String) {
+        // 会在用户输入的文字有变时机会执行这个方法,修改userGuess的值
+        userGuess = guessedWord
+    }
+    //endregion
+
 
     //region  1.UiState data class
     // 流向 view 的数据类,这里定义的数据将会作为画面的 state 值,每次修改都会导致画面的重组
