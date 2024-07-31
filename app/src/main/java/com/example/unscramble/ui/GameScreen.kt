@@ -71,6 +71,14 @@ Tips: 这里的实现可以参照 google 对 uilayer 中的描述,可以平行�
 https://developer.android.com/topic/architecture/ui-layer?hl=zh-cn
  */
 
+/*
+数据流入:
+1. 获取 viewmodel 持有的 uistate -> gameViewModel.uiState.collectAsState()
+
+事件上报:
+1. 点击 submit 按钮 -> { gameViewModel.checkUserGuess() }
+ */
+
 // Tips: 在Composable的组件代码内,代码结构可能会比较复杂,所以可以活用 android studio 的 structure 工具,帮助你找到位置
 @Composable
 fun GameScreen(
@@ -101,10 +109,11 @@ fun GameScreen(
             // { gameViewModel.updateUserGuess(it) }是 { it -> gameViewModel.updateUserGuess(it) }的简写, 因为只有一个参数,当有两个参数或跟多则需要自己手动指定了
             // Tips: 高阶函数是说,一个函数 A 的接受的参数或者返回值是一个函数,这个A 就是高阶函数,所以GameLayout在这里是高阶函数
             onUserGuessChanged = { gameViewModel.updateUserGuess(it) },
-            onKeyboardDone = { },
+            onKeyboardDone = { gameViewModel.checkUserGuess() },
             // 这里的gameViewModel.userGuess,当 userGuess 字段修正会使GameScreen和GameLayout都重组,但是 compose 会只能略过 GameScreen 中不依赖于 userGuess 的 ui 部分提高效率,这里的操作不需要手动管理的,另外测试 composable 组件重组的方式可以直接在 fun 里面写 print 打印的代码,就会在重组的时候打印了
             userGuess = gameViewModel.userGuess,
             currentScrambledWord = gameUiState.currentScrambledWord,
+            isGuessWrong = gameUiState.isGuessedWordWrong,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
@@ -120,7 +129,8 @@ fun GameScreen(
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { }
+                //
+                onClick = { gameViewModel.checkUserGuess() }
             ) {
                 Text(
                     text = stringResource(R.string.submit),
@@ -162,16 +172,18 @@ fun GameStatus(score: Int, modifier: Modifier = Modifier) {
 数据流入:
 1. 当前的问题 text -> gameUiState.currentScrambledWord
 2. 当前输入的 text -> gameViewModel.userGuess
+3. 当前的答案是否争取 -> gameUiState.isGuessedWordWrong
 
 事件上报:
 1. 输入答案文字改变 -> { gameViewModel.updateUserGuess(it) }
-2. 键盘 done 键按下 -> TODO
+2. 键盘 done 键按下 -> { gameViewModel.checkUserGuess() }
  */
 fun GameLayout(
     onUserGuessChanged: (String) -> Unit,
     onKeyboardDone: () -> Unit,
     userGuess: String,
     currentScrambledWord: String,
+    isGuessWrong: Boolean,
     modifier: Modifier = Modifier
 ) {
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
@@ -219,8 +231,17 @@ fun GameLayout(
                 // 当textField输入的内容变动的时候出发的行为
                 // Tips: onValueChange: (String) -> Unit,可以看到onValueChange的值类型就是接受一个 string 参数且无返回值的函数
                 onValueChange = onUserGuessChanged,
-                label = { Text(stringResource(R.string.enter_your_word)) },
-                isError = false,
+                label = {
+                    // 将这里的占位文字添加在答案错误时的展示文字
+                    // 这里其实可以看到和命令式编程的不同,开发者不需要手动的考虑时机,然后命令的某个实例去做某些行为,而是只要声明逻辑,即可实现 state 对 ui 的驱动,可以着眼于 声明 和 命令,感受一下其中的不同
+                    if (isGuessWrong) {
+                        Text(stringResource(R.string.wrong_guess))
+                    } else {
+                        Text(stringResource(R.string.enter_your_word))
+                    }
+                },
+                // textFiled 提供了输入错误的 flag,错误时会把输入框改为红色的错误样式
+                isError = isGuessWrong,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
                 ),

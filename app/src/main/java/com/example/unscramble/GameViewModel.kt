@@ -9,6 +9,7 @@ import com.example.unscramble.data.allWords
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class GameViewModel: ViewModel() {
     /*
@@ -96,13 +97,36 @@ class GameViewModel: ViewModel() {
         // 会在用户输入的文字有变时机会执行这个方法,修改userGuess的值
         userGuess = guessedWord
     }
+
+    // 在我们的 app 式样中,点击键盘的 done 和 submit 按钮都会检查输入文字是否正确
+    fun checkUserGuess() {
+        // 检查用户答案和问题的方法,如果一致就下一题,如果不一致就报错
+        // 这里的ignoreCase = true是是否无视大小写
+        if (userGuess.equals(currentWord, ignoreCase = true)) {
+            // TODO 这里是回答正确的逻辑, 后续要实现算分,移动到下一题等功能
+        } else {
+            // 如果用户的答案不对,就把 uistate 的 isGuessedWordWrong 值改为 true
+            _uiState.update { currentState ->
+                // 这里是用的MutableStateFlow的 update 方法更新值, 关于下列的 copy 的用法,比较简单不做赘述
+                // Tips1: 注意 private val _uiState, 这里使用的 val, 说的是 _uiState 这个实例是不能变的,也就是没办法赋一个新的_uiState,但是_uiState本身的属性是可变的
+                // Tips2: 进一步,尝试 _uiState.value.isGuessedWordWrong = false, 会发现报错,是因为 data class 的声明中是 val isGuessedWordWrong: Boolean = false
+                // Tips3: 再进一步, 这里我们使用了 update 来对 _uiState的值进行更新,除了可以保证数据的原子性(*transaction 事务)和简化代码, 还有一方面这也是贯彻 UDF 设计理念
+                // Tips4: 使用 _uiState.value.isGuessedWordWrong = false这样方式,还可能会导致state 无法正确引发画面重组,(未测试, 根据 AI 的回答得知s)
+                currentState.copy(isGuessedWordWrong = true)
+            }
+        }
+        // 无论用户输入的答案的对与错,check 后都会清空用户的输入文字
+        updateUserGuess("")
+    }
     //endregion
 
 
     //region  1.UiState data class
     // 流向 view 的数据类,这里定义的数据将会作为画面的 state 值,每次修改都会导致画面的重组
     data class GameUiState(
-        val currentScrambledWord: String = ""
+        val currentScrambledWord: String = "",
+        // 添加一个布尔值,表示用于输入的答案的对与否
+        val isGuessedWordWrong: Boolean = false
     )
     //endregion
 }
