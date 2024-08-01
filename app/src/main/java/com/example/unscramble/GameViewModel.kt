@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.unscramble.data.MAX_NO_OF_WORDS
 import com.example.unscramble.data.SCORE_INCREASE
 import com.example.unscramble.data.allWords
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,17 +94,30 @@ class GameViewModel: ViewModel() {
     }
 
     private fun updateGameState(updatedScore: Int) {
-        _uiState.update {
-            it.copy(
-                // 重新选一个新的问题
-                currentScrambledWord = pickRandomWordAndShuffle(),
-                // 初始化对错的状态
-                isGuessedWordWrong = false,
-                // 更新分数
-                score = updatedScore,
-                // 更新计数, 这里的.inc()就是++调用的方法,注意+=1 是调用.plus(1), 另外.inc()只能计算+1
-                currentWordCount = it.currentWordCount.inc()
-            )
+        if (usedWords.size == MAX_NO_OF_WORDS) {
+            // 当问题的计数达到了每轮游戏的上限
+            _uiState.update {
+                // 算分,修改状态为 game over
+                it.copy(
+                    isGuessedWordWrong = false,
+                    score = updatedScore,
+                    isGameOver = true
+                )
+            }
+        } else {
+            // 当问题计数还没到上限,
+            _uiState.update {
+                it.copy(
+                    // 重新选一个新的问题
+                    currentScrambledWord = pickRandomWordAndShuffle(),
+                    // 初始化对错的状态
+                    isGuessedWordWrong = false,
+                    // 更新分数
+                    score = updatedScore,
+                    // 更新计数, 这里的.inc()就是++调用的方法,注意+=1 是调用.plus(1), 另外.inc()只能计算+1
+                    currentWordCount = it.currentWordCount.inc()
+                )
+            }
         }
     }
 
@@ -156,7 +170,9 @@ class GameViewModel: ViewModel() {
         // 分数
         val score: Int = 0,
         // 现在回答问题的计数
-        val currentWordCount: Int = 1
+        val currentWordCount: Int = 1,
+        // 判断游戏是否结束的 flag
+        val isGameOver: Boolean = false
     )
     //endregion
 }

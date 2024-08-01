@@ -153,6 +153,13 @@ fun GameScreen(
 
         GameStatus(score = gameUiState.score, modifier = Modifier.padding(20.dp))
     }
+    if (gameUiState.isGameOver) {
+        // 根据 isGameOver 的状态来判断是否想显示 alertdialog,也会因为isGameOver的状态去隐藏这个alertdialog
+        FinalScoreDialog(
+            score = gameUiState.score,
+            onPlayAgain = { gameViewModel.resetGame() }
+        )
+    }
 }
 
 /*
@@ -268,6 +275,11 @@ fun GameLayout(
 
 /*
  * Creates and shows an AlertDialog with final score.
+数据流入:
+1. 当前的分数 -> gameUiState.score
+
+事件上报:
+1. 点击 play again 重开一轮新游戏 -> { gameViewModel.resetGame() }
  */
 @Composable
 private fun FinalScoreDialog(
@@ -282,11 +294,15 @@ private fun FinalScoreDialog(
             // Dismiss the dialog when the user clicks outside the dialog or on the back
             // button. If you want to disable that functionality, simply use an empty
             // onCloseRequest.
+
+            // 这里的会在点击在 alertdialog 之外的地方出发,如果没有特殊的操作就可以直接什么都不写
+            // 但是如果想让这个 alertdialog 消失, 如果是传统的命令式的话,可能会调用一个 dismiss 方法去隐去这个alertdialog, 这样的话就会导致 view 和 isGameOver 这个 state 分离,所以在声明式变成+数据驱动,我们这里要实现的是修改isGameOver为 false, 因为只有 isGameOver 为 true 的时候才会显示这个alertdialog, 如果你想尝试可以在下面直接调用onPlayAgain()方法, 通过 resetGame 来使isGameOver变为 false,达成dismiss 的效果
         },
         title = { Text(text = stringResource(R.string.congratulations)) },
         text = { Text(text = stringResource(R.string.you_scored, score)) },
         modifier = modifier,
         dismissButton = {
+            // 这个是exit 的 button,点击后会触发activity.finish(), 作为单一 activity 的app,就会直接关闭
             TextButton(
                 onClick = {
                     activity.finish()
@@ -296,6 +312,7 @@ private fun FinalScoreDialog(
             }
         },
         confirmButton = {
+            // play again 的 button,点击后会调用 resetGame 初始化重开新一轮游戏
             TextButton(onClick = onPlayAgain) {
                 Text(text = stringResource(R.string.play_again))
             }
