@@ -77,6 +77,7 @@ https://developer.android.com/topic/architecture/ui-layer?hl=zh-cn
 
 事件上报:
 1. 点击 submit 按钮 -> { gameViewModel.checkUserGuess() }
+2. 点击 skip 按钮 -> { gameViewModel.skipWord() }
  */
 
 // Tips: 在Composable的组件代码内,代码结构可能会比较复杂,所以可以活用 android studio 的 structure 工具,帮助你找到位置
@@ -113,6 +114,7 @@ fun GameScreen(
             // 这里的gameViewModel.userGuess,当 userGuess 字段修正会使GameScreen和GameLayout都重组,但是 compose 会只能略过 GameScreen 中不依赖于 userGuess 的 ui 部分提高效率,这里的操作不需要手动管理的,另外测试 composable 组件重组的方式可以直接在 fun 里面写 print 打印的代码,就会在重组的时候打印了
             userGuess = gameViewModel.userGuess,
             currentScrambledWord = gameUiState.currentScrambledWord,
+            wordCount = gameUiState.currentWordCount,
             isGuessWrong = gameUiState.isGuessedWordWrong,
             modifier = Modifier
                 .fillMaxWidth()
@@ -139,7 +141,7 @@ fun GameScreen(
             }
 
             OutlinedButton(
-                onClick = { },
+                onClick = { gameViewModel.skipWord() },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
@@ -149,10 +151,17 @@ fun GameScreen(
             }
         }
 
-        GameStatus(score = 0, modifier = Modifier.padding(20.dp))
+        GameStatus(score = gameUiState.score, modifier = Modifier.padding(20.dp))
     }
 }
 
+/*
+数据流入:
+1. 分数 -> gameUiState.score
+
+事件上报:
+无
+ */
 @Composable
 fun GameStatus(score: Int, modifier: Modifier = Modifier) {
     Card(
@@ -173,6 +182,7 @@ fun GameStatus(score: Int, modifier: Modifier = Modifier) {
 1. 当前的问题 text -> gameUiState.currentScrambledWord
 2. 当前输入的 text -> gameViewModel.userGuess
 3. 当前的答案是否争取 -> gameUiState.isGuessedWordWrong
+4. 当前的问题计数 - > gameUiState.currentWordCount
 
 事件上报:
 1. 输入答案文字改变 -> { gameViewModel.updateUserGuess(it) }
@@ -184,6 +194,7 @@ fun GameLayout(
     userGuess: String,
     currentScrambledWord: String,
     isGuessWrong: Boolean,
+    wordCount: Int,
     modifier: Modifier = Modifier
 ) {
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
@@ -203,7 +214,7 @@ fun GameLayout(
                     .background(colorScheme.surfaceTint)
                     .padding(horizontal = 10.dp, vertical = 4.dp)
                     .align(alignment = Alignment.End),
-                text = stringResource(R.string.word_count, 0),
+                text = stringResource(R.string.word_count, wordCount),
                 style = typography.titleMedium,
                 color = colorScheme.onPrimary
             )

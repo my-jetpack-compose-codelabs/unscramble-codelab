@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.unscramble.data.SCORE_INCREASE
 import com.example.unscramble.data.allWords
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -90,6 +91,22 @@ class GameViewModel: ViewModel() {
             currentScrambledWord = pickRandomWordAndShuffle()
         )
     }
+
+    private fun updateGameState(updatedScore: Int) {
+        _uiState.update {
+            it.copy(
+                // 重新选一个新的问题
+                currentScrambledWord = pickRandomWordAndShuffle(),
+                // 初始化对错的状态
+                isGuessedWordWrong = false,
+                // 更新分数
+                score = updatedScore,
+                // 更新计数, 这里的.inc()就是++调用的方法,注意+=1 是调用.plus(1), 另外.inc()只能计算+1
+                currentWordCount = it.currentWordCount.inc()
+            )
+        }
+    }
+
     //endregion
 
     //region  4.event method
@@ -103,7 +120,11 @@ class GameViewModel: ViewModel() {
         // 检查用户答案和问题的方法,如果一致就下一题,如果不一致就报错
         // 这里的ignoreCase = true是是否无视大小写
         if (userGuess.equals(currentWord, ignoreCase = true)) {
-            // TODO 这里是回答正确的逻辑, 后续要实现算分,移动到下一题等功能
+            // 计算积分,SCORE_INCREASE是一个常量, 这里使用了.plus 语法, 其实+的本质就是调用.plus 语法,所以可以自由选择
+            // 另外这里没有使用+=或者++,请参考错误我在回答错误处理处对 val 的解释
+            val updatedScore = _uiState.value.score.plus(SCORE_INCREASE)
+            // 添加一个更新状态的方法去处理, 涉及逻辑有算分,移动下一题等
+            updateGameState(updatedScore)
         } else {
             // 如果用户的答案不对,就把 uistate 的 isGuessedWordWrong 值改为 true
             _uiState.update { currentState ->
@@ -118,6 +139,11 @@ class GameViewModel: ViewModel() {
         // 无论用户输入的答案的对与错,check 后都会清空用户的输入文字
         updateUserGuess("")
     }
+
+    fun skipWord() {
+        // 处理跳过问题的事件,分数保持不变
+        updateGameState(_uiState.value.score)
+    }
     //endregion
 
 
@@ -126,7 +152,11 @@ class GameViewModel: ViewModel() {
     data class GameUiState(
         val currentScrambledWord: String = "",
         // 添加一个布尔值,表示用于输入的答案的对与否
-        val isGuessedWordWrong: Boolean = false
+        val isGuessedWordWrong: Boolean = false,
+        // 分数
+        val score: Int = 0,
+        // 现在回答问题的计数
+        val currentWordCount: Int = 1
     )
     //endregion
 }
